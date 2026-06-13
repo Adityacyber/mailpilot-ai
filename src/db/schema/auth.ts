@@ -1,28 +1,48 @@
-import { pgTable, text, timestamp, primaryKey } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  primaryKey,
+  integer,
+} from "drizzle-orm/pg-core";
 
-export const users = pgTable("users", {
+export const users = pgTable("user", {
   id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").unique().notNull(),
+  name: text("name"),
+  email: text("email").unique(),
+  emailVerified: timestamp("emailVerified", {
+    mode: "date",
+  }),
   image: text("image"),
-  emailVerified: timestamp("email_verified"),
 });
 
 export const accounts = pgTable(
-  "accounts",
+  "account",
   {
     userId: text("userId")
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, {
+        onDelete: "cascade",
+      }),
+
     type: text("type").notNull(),
+
     provider: text("provider").notNull(),
+
     providerAccountId: text("providerAccountId").notNull(),
+
     refresh_token: text("refresh_token"),
+
     access_token: text("access_token"),
-    expires_at: timestamp("expires_at"),
+
+    expires_at: integer("expires_at"),
+
     token_type: text("token_type"),
+
     scope: text("scope"),
+
     id_token: text("id_token"),
+
     session_state: text("session_state"),
   },
   (account) => ({
@@ -32,20 +52,30 @@ export const accounts = pgTable(
   }),
 );
 
-export const sessions = pgTable("sessions", {
-  sessionToken: text("session_token").primaryKey(),
+export const sessions = pgTable("session", {
+  sessionToken: text("sessionToken").primaryKey(),
+
   userId: text("userId")
     .notNull()
-    .references(() => users.id),
-  expires: timestamp("expires").notNull(),
+    .references(() => users.id, {
+      onDelete: "cascade",
+    }),
+
+  expires: timestamp("expires", {
+    mode: "date",
+  }).notNull(),
 });
 
 export const verificationTokens = pgTable(
-  "verification_tokens",
+  "verificationToken",
   {
     identifier: text("identifier").notNull(),
+
     token: text("token").notNull(),
-    expires: timestamp("expires").notNull(),
+
+    expires: timestamp("expires", {
+      mode: "date",
+    }).notNull(),
   },
   (token) => ({
     compoundKey: primaryKey({
