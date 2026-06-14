@@ -7,9 +7,15 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { users } from "./auth";
+
 export const emails = pgTable("emails", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, {
+      onDelete: "cascade",
+    }),
   gmailId: text("gmail_id").notNull(),
   threadId: text("thread_id").notNull(),
   subject: text("subject"),
