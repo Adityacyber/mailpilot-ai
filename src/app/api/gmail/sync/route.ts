@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { getGoogleAccount } from "@/lib/account";
 import { getGmailClient } from "@/lib/gmail";
+import { getHeader } from "@/lib/gmail-parser";
+import { saveEmail } from "@/lib/gmail-sync";
 
 export async function GET() {
   const session = await auth();
@@ -28,5 +30,48 @@ export async function GET() {
     maxResults: 10,
   });
 
-  return Response.json(messages.data);
+  const emails = await Promise.all(
+    (messages.data.messages ?? []).map(async (message) => {
+      const email = await gmail.users.messages.get({
+        userId: "me",
+        id: message.id!,
+        format: "full",
+      });
+
+      const headers = email.data.payload?.headers ?? [];
+
+      //@ts-ignore
+      const subject = getHeader(headers, "Subject");
+      //@ts-ignore
+      const from = getHeader(headers, "From");
+      //@ts-ignore
+      const recipient = getHeader(headers, "To");
+      //@ts-ignore
+      const receivedAt = getHeader(headers, "Date");
+
+      await saveEmail({
+        //@ts-ignore
+        userId: session.user.id,
+        gmailId: email.data.id!,
+        threadId: email.data.threadId!,
+        snippet: email.data.snippet ?? "",
+        subject,
+        sender: from,
+        recipients: recipient,
+        receivedAt,
+      });
+
+      return {
+        gmailId: email.data.id,
+        threadId: email.data.threadId,
+        snippet: email.data.snippet,
+        subject,
+        from,
+        recipient,
+        receivedAt,
+      };
+    }),
+  );
+
+  return Response.json(emails);
 }
